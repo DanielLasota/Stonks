@@ -1,5 +1,5 @@
-def do_something():
-    print('hi')
+from stonks.scraper import run_stocks_analysis
+
 
 if __name__ == '__main__':
-    do_something()
+    run_stocks_analysis(asset='EURUSD=X')
