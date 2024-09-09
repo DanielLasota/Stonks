@@ -1,38 +1,47 @@
 import pandas
+import pandas as pd
 import yfinance as yf
-import matplotlib.pyplot as plt
+import mplfinance as mpf
 
 
 def run_stocks_analysis(asset: str) -> None:
-    data = yf.download(asset, period='1mo', interval='5m')
+    df = download_historical_data(asset=asset)
 
-    if data.empty:
+    if df.empty:
         print('No data fetched. Check the ticker symbol')
     else:
-        data = calculate_indicators(df=data)
-        plot_fetched_data(df=data)
+        print(df)
+        print(df.columns)
+        df = calculate_indicators(df=df)
+        plot_fetched_data(df=df)
 
-def calculate_indicators(df: pandas.DataFrame) -> pandas.DataFrame:
+def download_historical_data(asset: str) -> pandas.DataFrame:
+    data = yf.download(asset, period='1mo', interval='1h')
+
+    return data
+
+def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df['SMA'] = df['Close'].rolling(window=20).mean()
 
     df['STD'] = df['Close'].rolling(window=20).std()
-
     df['Upper_Bollinger_Band'] = df['SMA'] + (df['STD'] * 2)
     df['Lower_Bollinger_Band'] = df['SMA'] - (df['STD'] * 2)
 
     return df
 
-def plot_fetched_data(df: pandas.DataFrame) -> None:
-    plt.figure(figsize=(14, 7))
-    plt.plot(df['Close'], label='Close Price', color='black')
-    plt.plot(df['SMA'], label='SMA', color='green', linewidth=0.8)
-    plt.plot(df['Upper_Bollinger_Band'], label='Upper Bollinger Band', color='red', linewidth=0.8)
-    plt.plot(df['Lower_Bollinger_Band'], label='Lower Bollinger Band', color='cyan', linewidth=0.8)
+def plot_fetched_data(df: pd.DataFrame) -> None:
+    df.index.name = 'Date'
 
-    plt.title(f'Some Asset')
-    plt.xlabel('Date')
-    plt.ylabel('Close Price')
-    plt.legend(loc='upper left')
-    plt.grid(True)
+    indicators_width = 0.2
 
-    plt.show()
+    add_plots = [
+        mpf.make_addplot(df['SMA'], color='green', label='SMA', width=indicators_width),
+        mpf.make_addplot(df['Upper_Bollinger_Band'], color='red', linestyle='--', label='Upper Bollinger',
+                         width=indicators_width),
+        mpf.make_addplot(df['Lower_Bollinger_Band'], color='blue', linestyle='--', label='Lower Bollinger',
+                         width=indicators_width)
+    ]
+
+    mpf.plot(df, type='candle', style='charles', addplot=add_plots,
+             title=f'px', ylabel='Price',
+             volume=False, figsize=(14, 7), show_nontrading=True)
