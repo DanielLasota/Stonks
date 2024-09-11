@@ -28,7 +28,7 @@ class DataManipulator:
     @staticmethod
     def add_bollinger_bands(df: pd.DataFrame) -> pd.DataFrame:
         df['SMA'] = df['Close'].rolling(window=20).mean()
-        df['STD'] = df['Close'].rolling(window=20).std().round(3)
+        df['STD'] = df['Close'].rolling(window=20).std()
         df['Upper_Bollinger_Band'] = df['SMA'] + (df['STD'] * 2)
         df['Lower_Bollinger_Band'] = df['SMA'] - (df['STD'] * 2)
         return df
