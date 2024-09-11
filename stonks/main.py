@@ -1,5 +1,4 @@
-def do_something():
-    print('hi')
+from stonks import run_stonks_analysis
 
 if __name__ == '__main__':
-    do_something()
+    run_stonks_analysis()
