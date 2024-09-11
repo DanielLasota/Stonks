@@ -21,7 +21,7 @@ class TestScraper:
         # given
         asset = 'NOT_STONKS'
         # when
-        df = Stonks.download_historical_data(asset)
+        df = Stonks.download_historical_data(asset, interval='1mo', period='15m')
         # then
         assert df.empty, "Expected empty dataframe for invalid asset"
 
@@ -29,10 +29,10 @@ class TestScraper:
         # given
         asset = 'EURUSD=X'
         # when
-        df = Stonks.download_historical_data(asset)
+        df = Stonks.download_historical_data(asset, interval='15m', period='5d')
 
         #then
-        assert not df.empty, "Expected non empty dataframe for valid asset"
+        assert not df.empty, "Expected non-empty dataframe for valid asset"
         expected_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
         assert all(column in df.columns for column in expected_columns), "Expected columns missing from DataFrame"
 
