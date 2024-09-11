@@ -34,10 +34,11 @@ class DataManipulator:
         return df
 
 class ChartRenderer:
+
     def __init__(
             self,
             asset: str,
-             df: pd.DataFrame
+            df: pd.DataFrame
     ):
         self.asset = asset
         self.df = df
@@ -132,17 +133,17 @@ class ChartRenderer:
 
 
 class Stonks:
-    def __init__(self, asset: str):
-        self.asset = asset
-        self.data_fetcher = DataFetcher(asset)
+    def __init__(self):
+        self.asset = 'EURUSD=X'
+        self.data_fetcher = DataFetcher(self.asset)
         self.data_frame = self.data_fetcher.fetch_data()
         self.data_manipulator = DataManipulator(self.data_frame)
         self.data_frame = self.data_manipulator.add_indicators()
-        self.chart_renderer = ChartRenderer(asset, self.data_frame)
+        self.chart_renderer = ChartRenderer(self.asset, self.data_frame)
 
     def run(self) -> None:
         self.chart_renderer.plot_data()
 
-def run_stocks_analysis(asset: str) -> None:
-    stonks = Stonks(asset)
+def run_stonks_analysis() -> None:
+    stonks = Stonks()
     stonks.run()
