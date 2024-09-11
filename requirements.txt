@@ -3,3 +3,4 @@ pandas==2.0.3
 yfinance==0.2.43
 matplotlib==3.7.5
 mplfinance==0.12.10b0
+matplotlib==3.7.5
