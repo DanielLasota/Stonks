@@ -99,21 +99,25 @@ class ChartRenderer:
         plt.draw()
 
     def add_widget_box(self, fig) -> None:
-        ax_radio_plot_type = plt.axes([0.05, 0.85, 0.1, 0.1])
+        ax_radio_plot_type = plt.axes([0.05, 0.8, 0.1, 0.1])
+        plt.text(0.05, 0.90, "Plot Type", transform=fig.transFigure)
         radio_plot_type = RadioButtons(ax_radio_plot_type, ['candle', 'line', 'ohlc'])
         radio_plot_type.on_clicked(self.change_plot_type)
 
-        ax_radio_period = plt.axes([0.05, 0.6, 0.1, 0.25])
+        ax_radio_period = plt.axes([0.05, 0.50, 0.1, 0.25])
+        plt.text(0.05, 0.75, "Period", transform=fig.transFigure)
         radio_period = RadioButtons(ax_radio_period,
                                     ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
                                     active=2)
         radio_period.on_clicked(self.change_period)
 
-        ax_radio_interval = plt.axes([0.05, 0.3, 0.1, 0.25])
+        ax_radio_interval = plt.axes([0.05, 0.20, 0.1, 0.25])
+        plt.text(0.05, 0.45, "Interval", transform=fig.transFigure)
         radio_interval = RadioButtons(ax_radio_interval,
                                       ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk',
                                        '1mo', '3mo'], active=3)
         radio_interval.on_clicked(self.change_interval)
+
 
         ax_textbox = plt.axes([0.05, 0.10, 0.1, 0.05])
         textbox = TextBox(ax_textbox, 'Input', initial=self.asset)
