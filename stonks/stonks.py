@@ -12,10 +12,14 @@ class DataFetcher:
         self.interval = interval
 
     def fetch_data(self) -> pd.DataFrame:
-        data = yf.download(self.asset, period=self.period, interval=self.interval)
-        if data.empty:
-            raise ValueError(f"No data fetched for ticker symbol '{self.asset}'. Check the ticker symbol.")
-        return data
+        try:
+            data = yf.download(self.asset, period=self.period, interval=self.interval)
+            if data.empty:
+                raise ValueError(f"No data fetched for ticker symbol '{self.asset}'. Check the ticker symbol.")
+            return data
+        except Exception as e:
+            raise ValueError(f"Error fetching data: {str(e)}")
+
 
 class DataManipulator:
     def __init__(self, df: pd.DataFrame):
@@ -33,6 +37,7 @@ class DataManipulator:
         df['Lower_Bollinger_Band'] = df['SMA'] - (df['STD'] * 2)
         return df
 
+
 class ChartRenderer:
 
     def __init__(
@@ -47,6 +52,8 @@ class ChartRenderer:
         self.current_interval = '15m'
         self.indicators_width = 0.35
         self.ax = None
+        self.fig = None
+        self.error_displayed = False
 
     def plot_data(self) -> None:
         df = self.df.copy()
@@ -60,28 +67,34 @@ class ChartRenderer:
                              width=self.indicators_width)
         ]
 
-        fig, axlist = mpf.plot(df, type=self.current_plot_type, style='charles', addplot=add_plots, ylabel='Price',
-                               volume=False, figsize=(14, 7), returnfig=True)
+        self.fig, axlist = mpf.plot(df, type=self.current_plot_type, style='charles', addplot=add_plots, ylabel='Price',
+                                    volume=False, figsize=(14, 7), returnfig=True)
         self.ax = axlist[0]
         self.ax.set_title(f'{self.asset} Price Chart')
 
-        self.add_widget_box(fig)
+        self.add_widget_box(self.fig)
         plt.show()
 
-    def update_plot(self) -> None:
+    def update_plot(self, error_message: str = "") -> None:
         self.ax.clear()
         self.ax.set_title(f'{self.asset} Price Chart')
 
-        add_plots_updated = [
-            mpf.make_addplot(self.df['SMA'], color='green', label='SMA', width=self.indicators_width, ax=self.ax),
-            mpf.make_addplot(self.df['Upper_Bollinger_Band'], color='red', linestyle='--', label='Upper Bollinger',
-                             width=self.indicators_width, ax=self.ax),
-            mpf.make_addplot(self.df['Lower_Bollinger_Band'], color='blue', linestyle='--', label='Lower Bollinger',
-                             width=self.indicators_width, ax=self.ax)
-        ]
+        if error_message:
+            self.ax.text(0.5, 0.02, error_message, horizontalalignment='center', verticalalignment='center',
+                         transform=self.ax.transAxes, color='red', fontsize=12)
+            self.error_displayed = True
+        else:
+            self.error_displayed = False
+            add_plots_updated = [
+                mpf.make_addplot(self.df['SMA'], color='green', label='SMA', width=self.indicators_width, ax=self.ax),
+                mpf.make_addplot(self.df['Upper_Bollinger_Band'], color='red', linestyle='--', label='Upper Bollinger',
+                                 width=self.indicators_width, ax=self.ax),
+                mpf.make_addplot(self.df['Lower_Bollinger_Band'], color='blue', linestyle='--', label='Lower Bollinger',
+                                 width=self.indicators_width, ax=self.ax)
+            ]
 
-        mpf.plot(self.df, type=self.current_plot_type, style='charles', addplot=add_plots_updated, ax=self.ax,
-                 volume=False)
+            mpf.plot(self.df, type=self.current_plot_type, style='charles', addplot=add_plots_updated, ax=self.ax,
+                     volume=False)
 
         plt.draw()
 
@@ -125,11 +138,14 @@ class ChartRenderer:
         self.update_asset_data()
 
     def update_asset_data(self) -> None:
-        fetcher = DataFetcher(self.asset, self.current_period, self.current_interval)
-        self.df = fetcher.fetch_data()
-        manipulator = DataManipulator(self.df)
-        self.df = manipulator.add_indicators()
-        self.update_plot()
+        try:
+            fetcher = DataFetcher(self.asset, self.current_period, self.current_interval)
+            self.df = fetcher.fetch_data()
+            manipulator = DataManipulator(self.df)
+            self.df = manipulator.add_indicators()
+            self.update_plot()
+        except ValueError as e:
+            self.update_plot(error_message=str(e))
 
 
 class Stonks:
@@ -143,6 +159,7 @@ class Stonks:
 
     def run(self) -> None:
         self.chart_renderer.plot_data()
+
 
 def run_stonks_analysis() -> None:
     stonks = Stonks()
