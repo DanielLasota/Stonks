@@ -5,35 +5,49 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import TextBox, RadioButtons
 
 
-class Stonks:
-    def __init__(self, asset: str):
-        self.ax = None
+class DataFetcher:
+    def __init__(self, asset: str, period: str = '1mo', interval: str = '15m'):
         self.asset = asset
-        self.current_plot_type = 'candle'
-        self.current_period = '1mo'
-        self.current_interval = '15m'
-        self.indicators_width = 0.35
-        self.df = self.download_historical_data(asset, self.current_period, self.current_interval)
+        self.period = period
+        self.interval = interval
 
-        if self.df.empty:
+    def fetch_data(self) -> pd.DataFrame:
+        data = yf.download(self.asset, period=self.period, interval=self.interval)
+        if data.empty:
             raise ValueError(f"No data fetched for ticker symbol '{self.asset}'. Check the ticker symbol.")
+        return data
 
-        self.df = self.calculate_indicators(self.df)
+class DataManipulator:
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+
+    def add_indicators(self) -> pd.DataFrame:
+        df_with_bollinger = self.add_bollinger_bands(df=self.df)
+        return df_with_bollinger
 
     @staticmethod
-    def download_historical_data(asset: str, period: str, interval: str) -> pd.DataFrame:
-        return yf.download(asset, period=period, interval=interval)
-
-    @staticmethod
-    def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
+    def add_bollinger_bands(df: pd.DataFrame) -> pd.DataFrame:
         df['SMA'] = df['Close'].rolling(window=20).mean()
         df['STD'] = df['Close'].rolling(window=20).std().round(3)
         df['Upper_Bollinger_Band'] = df['SMA'] + (df['STD'] * 2)
         df['Lower_Bollinger_Band'] = df['SMA'] - (df['STD'] * 2)
         return df
 
-    def plot_fetched_data(self) -> None:
+class ChartRenderer:
+    def __init__(
+            self,
+            asset: str,
+             df: pd.DataFrame
+    ):
+        self.asset = asset
+        self.df = df
+        self.current_plot_type = 'candle'
+        self.current_period = '1mo'
+        self.current_interval = '15m'
+        self.indicators_width = 0.35
+        self.ax = None
+
+    def plot_data(self) -> None:
         df = self.df.copy()
         df.index.name = 'Date'
 
@@ -49,7 +63,9 @@ class Stonks:
                                volume=False, figsize=(14, 7), returnfig=True)
         self.ax = axlist[0]
         self.ax.set_title(f'{self.asset} Price Chart')
+
         self.add_widget_box(fig)
+        plt.show()
 
     def update_plot(self) -> None:
         self.ax.clear()
@@ -74,11 +90,15 @@ class Stonks:
         radio_plot_type.on_clicked(self.change_plot_type)
 
         ax_radio_period = plt.axes([0.05, 0.6, 0.1, 0.25])
-        radio_period = RadioButtons(ax_radio_period, ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'], active=2)
+        radio_period = RadioButtons(ax_radio_period,
+                                    ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+                                    active=2)
         radio_period.on_clicked(self.change_period)
 
         ax_radio_interval = plt.axes([0.05, 0.3, 0.1, 0.25])
-        radio_interval = RadioButtons(ax_radio_interval, ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'], active=3)
+        radio_interval = RadioButtons(ax_radio_interval,
+                                      ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk',
+                                       '1mo', '3mo'], active=3)
         radio_interval.on_clicked(self.change_interval)
 
         ax_textbox = plt.axes([0.05, 0.10, 0.1, 0.05])
@@ -87,29 +107,42 @@ class Stonks:
 
         plt.show()
 
-    def update_asset_data(self, **kwargs) -> None:
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value.strip() if isinstance(value, str) else value)
-
-        if 'asset' in kwargs or 'current_period' in kwargs or 'current_interval' in kwargs:
-            self.df = self.download_historical_data(self.asset, self.current_period, self.current_interval)
-            self.df = self.calculate_indicators(self.df)
-
+    def change_plot_type(self, label: str) -> None:
+        self.current_plot_type = label
         self.update_plot()
 
-    def change_plot_type(self, label: str) -> None:
-        self.update_asset_data(current_plot_type=label)
-
     def change_period(self, label: str) -> None:
-        self.update_asset_data(current_period=label)
+        self.current_period = label
+        self.update_asset_data()
 
     def change_interval(self, label: str) -> None:
-        self.update_asset_data(current_interval=label)
+        self.current_interval = label
+        self.update_asset_data()
 
     def submit_text(self, text: str) -> None:
-        self.update_asset_data(asset=text)
+        self.asset = text
+        self.update_asset_data()
+
+    def update_asset_data(self) -> None:
+        fetcher = DataFetcher(self.asset, self.current_period, self.current_interval)
+        self.df = fetcher.fetch_data()
+        manipulator = DataManipulator(self.df)
+        self.df = manipulator.add_indicators()
+        self.update_plot()
+
+
+class Stonks:
+    def __init__(self, asset: str):
+        self.asset = asset
+        self.data_fetcher = DataFetcher(asset)
+        self.data_frame = self.data_fetcher.fetch_data()
+        self.data_manipulator = DataManipulator(self.data_frame)
+        self.data_frame = self.data_manipulator.add_indicators()
+        self.chart_renderer = ChartRenderer(asset, self.data_frame)
+
+    def run(self) -> None:
+        self.chart_renderer.plot_data()
 
 def run_stocks_analysis(asset: str) -> None:
-    stock_analysis = Stonks(asset)
-    stock_analysis.plot_fetched_data()
+    stonks = Stonks(asset)
+    stonks.run()

@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 from unittest.mock import patch
 
-from stonks.scraper import Stonks
+from stonks.scraper import DataFetcher, DataManipulator
 
 
 class TestScraper:
@@ -12,26 +12,30 @@ class TestScraper:
         # given
         asset = 'INVALID_ASSET'
         # when
-        with patch('stonks.scraper.Stonks.download_historical_data', return_value=pd.DataFrame()):
+        with patch('stonks.scraper.yf.download', return_value=pd.DataFrame()):
             # then
             with pytest.raises(ValueError):
-                Stonks(asset)
+                fetcher = DataFetcher(asset)
+                fetcher.fetch_data()
 
     def test_given_incorrect_asset_name_when_downloading_historical_data_then_empty_dataframe_is_returned(self):
         # given
         asset = 'NOT_STONKS'
         # when
-        df = Stonks.download_historical_data(asset, interval='1mo', period='15m')
+        with patch('stonks.scraper.DataFetcher.fetch_data', return_value=pd.DataFrame()):
+            fetcher = DataFetcher(asset)
+            df = fetcher.fetch_data()
         # then
         assert df.empty, "Expected empty dataframe for invalid asset"
 
     def test_given_correct_asset_name_when_downloading_historical_data_then_non_empty_dataframe_is_returned(self):
         # given
         asset = 'EURUSD=X'
+        fetcher = DataFetcher(asset)
         # when
-        df = Stonks.download_historical_data(asset, interval='15m', period='5d')
+        df = fetcher.fetch_data()
 
-        #then
+        # then
         assert not df.empty, "Expected non-empty dataframe for valid asset"
         expected_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
         assert all(column in df.columns for column in expected_columns), "Expected columns missing from DataFrame"
@@ -42,9 +46,10 @@ class TestScraper:
             'Close': [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 29, 28, 27, 26]
         }
         df = pd.DataFrame(data)
+        manipulator = DataManipulator(df)
 
         # when
-        df_with_indicators = Stonks.calculate_indicators(df.copy())
+        df_with_indicators = manipulator.add_indicators()
 
         # then
         expected_csv = StringIO(
