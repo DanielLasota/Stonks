@@ -39,7 +39,6 @@ class DataManipulator:
 
 
 class ChartRenderer:
-
     def __init__(
             self,
             asset: str,
@@ -149,7 +148,8 @@ class ChartRenderer:
             self.df = manipulator.add_indicators()
             self.update_plot()
         except ValueError as e:
-            self.update_plot(error_message=str(e))
+            self.update_plot(error_message=f"{str(e)}, \nmoreover check if INPUT='EURUSD=X' whilst entering forex pairs, "
+                                           f"'EURUSD' is wrong")
 
 
 class Stonks:
